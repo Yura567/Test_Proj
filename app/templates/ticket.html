@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block head %}{% if ticket.status in ("new", "generating", "approved", "sending") %}<meta http-equiv="refresh" content="5">{% endif %}{% endblock %}
+{% block title %}Звернення {{ ticket.ticket_id }}{% endblock %}
+{% block content %}
+<p><a href="/tickets">← До списку</a></p>
+<h1>Звернення {{ ticket.ticket_id }} <span class="status status-{{ ticket.status }}">{{ STATUS_LABELS[ticket.status] }}</span></h1>
+{% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+
+<table>
+  <tr><th>Клієнт</th><td>{{ ticket.customer_email }}</td></tr>
+  <tr><th>Подія</th><td>{{ ticket.event_id }}</td></tr>
+  <tr><th>Отримано</th><td>{{ ticket.created_at.strftime("%Y-%m-%d %H:%M:%S %Z") }}</td></tr>
+  <tr><th>Режим LLM</th><td>{{ ticket.llm_mode or "—" }}</td></tr>
+  <tr><th>Спроби</th><td>генерація: {{ ticket.generation_attempts }}, надсилання: {{ ticket.send_attempts }}</td></tr>
+  {% if ticket.sent_at %}<tr><th>Надіслано</th><td>{{ ticket.sent_at.strftime("%Y-%m-%d %H:%M:%S %Z") }}</td></tr>{% endif %}
+  {% if ticket.last_error %}<tr><th>Остання помилка</th><td class="error">{{ ticket.last_error }}</td></tr>{% endif %}
+</table>
+
+<h2>Повідомлення клієнта</h2>
+<div class="text">{{ ticket.message }}</div>
+
+{% if ticket.articles %}
+<h2>Знайдені статті</h2>
+<ul>
+  {% for a in ticket.articles %}<li><a href="{{ a.url }}" target="_blank">{{ a.title }}</a></li>{% endfor %}
+</ul>
+{% endif %}
+
+{% if ticket.status == "draft_ready" %}
+<h2>Чернетка відповіді</h2>
+<form method="post" action="/tickets/{{ ticket.id }}/approve">
+  <textarea name="message" required>{{ ticket.draft }}</textarea>
+  <p><button type="submit">Підтвердити й надіслати</button></p>
+</form>
+<div class="actions">
+  <form method="post" action="/tickets/{{ ticket.id }}/reject"><button type="submit">Відхилити</button></form>
+  <form method="post" action="/tickets/{{ ticket.id }}/regenerate"><button type="submit">Згенерувати заново</button></form>
+</div>
+{% elif ticket.status in ("approved", "sending", "sent", "send_failed") %}
+<h2>Відповідь клієнту</h2>
+<div class="text">{{ ticket.final_message }}</div>
+{% if ticket.status == "send_failed" %}
+<div class="actions">
+  <form method="post" action="/tickets/{{ ticket.id }}/retry-send"><button type="submit">Повторити надсилання</button></form>
+</div>
+{% endif %}
+{% elif ticket.status in ("rejected", "generation_failed") %}
+{% if ticket.draft %}
+<h2>Чернетка</h2>
+<div class="text">{{ ticket.draft }}</div>
+{% endif %}
+<div class="actions">
+  <form method="post" action="/tickets/{{ ticket.id }}/regenerate"><button type="submit">Згенерувати заново</button></form>
+</div>
+{% else %}
+<p class="muted">Чернетка готується. Сторінка оновиться автоматично.</p>
+{% endif %}
+{% endblock %}

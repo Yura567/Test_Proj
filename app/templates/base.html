@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% block head %}{% endblock %}
+  <title>{% block title %}Підтримка ReportFlow{% endblock %}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0 auto; max-width: 1100px; padding: 16px; color: #222; }
+    nav a { margin-right: 16px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
+    pre, .text { white-space: pre-wrap; word-wrap: break-word; background: #f6f6f6; padding: 10px; border-radius: 4px; }
+    textarea { width: 100%; min-height: 260px; font: inherit; box-sizing: border-box; }
+    .status { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #eee; font-size: 0.9em; }
+    .status-draft_ready { background: #fff3c4; }
+    .status-sent { background: #d4f5d4; }
+    .status-generation_failed, .status-send_failed { background: #f9d0d0; }
+    .status-rejected { background: #e0e0e0; color: #666; }
+    .notice { padding: 8px 12px; background: #e8f0fe; border-radius: 4px; }
+    .error { color: #b00020; }
+    .actions form { display: inline-block; margin-right: 8px; }
+    .filters a { margin-right: 10px; }
+    .muted { color: #777; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/tickets">Звернення</a>
+    <a href="/kb">База знань</a>
+  </nav>
+  <hr>
+  {% block content %}{% endblock %}
+</body>
+</html>

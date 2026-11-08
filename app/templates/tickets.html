@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block head %}<meta http-equiv="refresh" content="10">{% endblock %}
+{% block title %}Звернення{% endblock %}
+{% block content %}
+<h1>Звернення</h1>
+<p class="filters">
+  <a href="/tickets">{% if not status_filter %}<b>Усі ({{ total }})</b>{% else %}Усі ({{ total }}){% endif %}</a>
+  {% for s in STATUSES %}
+    <a href="/tickets?status_filter={{ s }}">{% if status_filter == s %}<b>{{ STATUS_LABELS[s] }} ({{ counts[s] }})</b>{% else %}{{ STATUS_LABELS[s] }} ({{ counts[s] }}){% endif %}</a>
+  {% endfor %}
+</p>
+{% if tickets %}
+<table>
+  <thead>
+    <tr><th>#</th><th>Тікет</th><th>Клієнт</th><th>Повідомлення</th><th>Статус</th><th>Створено</th></tr>
+  </thead>
+  <tbody>
+  {% for t in tickets %}
+    <tr>
+      <td><a href="/tickets/{{ t.id }}">{{ t.id }}</a></td>
+      <td>{{ t.ticket_id }}</td>
+      <td>{{ t.customer_email }}</td>
+      <td><a href="/tickets/{{ t.id }}">{{ t.message[:120] }}{% if t.message|length > 120 %}…{% endif %}</a></td>
+      <td><span class="status status-{{ t.status }}">{{ STATUS_LABELS[t.status] }}</span></td>
+      <td class="muted">{{ t.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Звернень поки немає.</p>
+{% endif %}
+<p class="muted">Сторінка оновлюється автоматично кожні 10 секунд. Показано до 200 останніх звернень.</p>
+{% endblock %}

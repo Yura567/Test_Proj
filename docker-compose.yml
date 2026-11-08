@@ -1,0 +1,78 @@
+x-app: &app
+  build: .
+  image: support-assistant:local
+  restart: unless-stopped
+  environment:
+    DATABASE_URL: postgresql+asyncpg://support:support@db:5432/support
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    LLM_MODEL: ${LLM_MODEL:-claude-opus-5-5}
+    LLM_EFFORT: ${LLM_EFFORT:-low}
+    LLM_RATE_LIMIT_PER_MINUTE: ${LLM_RATE_LIMIT_PER_MINUTE:-60}
+    PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
+    OPERATOR_USERNAME: ${OPERATOR_USERNAME:-operator}
+    OPERATOR_PASSWORD: ${OPERATOR_PASSWORD:-}
+    REPLY_URL_REWRITE_FROM: ${REPLY_URL_REWRITE_FROM:-https://helpdesk.example.com}
+    REPLY_URL_REWRITE_TO: ${REPLY_URL_REWRITE_TO:-http://helpdesk-mock:8001}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: support
+      POSTGRES_PASSWORD: support
+      POSTGRES_DB: support
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U support -d support"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["python", "-m", "app.init_db"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "app.worker"]
+    stop_grace_period: 40s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  helpdesk-mock:
+    <<: *app
+    command: ["uvicorn", "helpdesk_mock.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      MOCK_WEBHOOK_URL: http://web:8000/webhooks/helpdesk
+      MOCK_PUBLIC_URL: http://helpdesk-mock:8001
+      MOCK_FAIL_RATE: ${MOCK_FAIL_RATE:-0.2}
+      MOCK_SLOW_RATE: ${MOCK_SLOW_RATE:-0.1}
+      MOCK_SLOW_SECONDS: ${MOCK_SLOW_SECONDS:-15}
+    ports:
+      - "8001:8001"
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  pgdata:

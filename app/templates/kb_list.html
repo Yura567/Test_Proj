@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}База знань{% endblock %}
+{% block content %}
+<h1>База знань ReportFlow</h1>
+<ul>
+  {% for a in articles %}<li><a href="/kb/{{ a.slug }}">{{ a.title }}</a></li>{% endfor %}
+</ul>
+{% endblock %}
